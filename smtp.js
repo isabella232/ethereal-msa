@@ -151,7 +151,13 @@ const serverOptions = {
                 if (err) {
                     return callback(err);
                 }
-                return callback(null, 'Accepted STATUS:' + info.status + ' EMSGID:' + [info.mailbox, info.id, info.uid].join(':'));
+
+                let mboxId = Buffer.from(info.mailbox.toString(), 'hex');
+                let msgId = Buffer.from(info.id.toString(), 'hex');
+                let uid = Buffer.alloc(4);
+                uid.writeUInt32LE(info.uid);
+
+                return callback(null, 'Accepted STATUS:' + info.status + ' EMSGID:' + Buffer.concat([mboxId, msgId, uid]).toString('base64'));
             });
         });
     }
