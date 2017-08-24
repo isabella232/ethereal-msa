@@ -157,7 +157,10 @@ const serverOptions = {
                 let uid = Buffer.alloc(6);
                 uid.writeUInt32BE(info.uid, 2);
 
-                return callback(null, 'Accepted STATUS:' + info.status + ' EMSGID:' + Buffer.concat([mboxId, msgId, uid]).toString('base64'));
+                return callback(
+                    null,
+                    'Accepted [STATUS=' + info.status + ' MSGID=' + Buffer.concat([mboxId, msgId, uid]).toString('base64').replace(/\//g, ',') + ']'
+                );
             });
         });
     }
