@@ -154,8 +154,8 @@ const serverOptions = {
 
                 let mboxId = Buffer.from(info.mailbox.toString(), 'hex');
                 let msgId = Buffer.from(info.id.toString(), 'hex');
-                let uid = Buffer.alloc(4);
-                uid.writeUInt32LE(info.uid);
+                let uid = Buffer.alloc(6);
+                uid.writeUInt32BE(info.uid, 2);
 
                 return callback(null, 'Accepted STATUS:' + info.status + ' EMSGID:' + Buffer.concat([mboxId, msgId, uid]).toString('base64'));
             });
