@@ -10,6 +10,7 @@ const UserHandler = require('wildduck/lib/user-handler');
 const MessageHandler = require('wildduck/lib/message-handler');
 const db = require('./lib/db');
 const fs = require('fs');
+const crypto = require('crypto');
 
 let messageHandler;
 let userHandler;
@@ -154,17 +155,15 @@ const serverOptions = {
 
                 let mboxId = Buffer.from(info.mailbox.toString(), 'hex');
                 let msgId = Buffer.from(info.id.toString(), 'hex');
-                let uid = Buffer.alloc(6);
-                uid.writeUInt32BE(info.uid, 2);
+                let uid = Buffer.alloc(4);
+                uid.writeUInt32BE(info.uid, 0);
+                let idBuf = Buffer.concat([mboxId, uid, msgId]);
 
-                return callback(
-                    null,
-                    'Accepted [STATUS=' +
-                        info.status +
-                        ' MSGID=' +
-                        Buffer.concat([mboxId, uid, msgId]).toString('base64').replace(/\+/g, '_').replace(/\//g, '-') +
-                        ']'
-                );
+                let hmac = crypto.createHmac('md5', config.smtp.msgidSecret);
+                hmac.update(idBuf);
+                let buf = Buffer.concat([idBuf, hmac.digest()]);
+
+                return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + buf.toString('base64').replace(/\+/g, '_').replace(/\//g, '-') + ']');
             });
         });
     }
