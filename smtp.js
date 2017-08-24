@@ -159,7 +159,11 @@ const serverOptions = {
 
                 return callback(
                     null,
-                    'Accepted [STATUS=' + info.status + ' MSGID=' + Buffer.concat([mboxId, msgId, uid]).toString('base64').replace(/\//g, ',') + ']'
+                    'Accepted [STATUS=' +
+                        info.status +
+                        ' MSGID=' +
+                        Buffer.concat([mboxId, msgId, uid]).toString('base64').replace(/\+/g, '.').replace(/\//g, ',') +
+                        ']'
                 );
             });
         });
