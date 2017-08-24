@@ -162,7 +162,7 @@ const serverOptions = {
                     'Accepted [STATUS=' +
                         info.status +
                         ' MSGID=' +
-                        Buffer.concat([mboxId, msgId, uid]).toString('base64').replace(/\+/g, '.').replace(/\//g, ',') +
+                        Buffer.concat([mboxId, uid, msgId]).toString('base64').replace(/\+/g, '.').replace(/\//g, ',') +
                         ']'
                 );
             });
