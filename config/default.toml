@@ -11,6 +11,7 @@ port=5587
 secure=false
 banner="Welcome to Ethereal MSA"
 msgidSecret="super secret"
+msgidHash="md5"
 
 [tls]
 #key="/path/to/server/key.pem"
