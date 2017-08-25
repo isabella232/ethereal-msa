@@ -10,7 +10,12 @@ const UserHandler = require('wildduck/lib/user-handler');
 const MessageHandler = require('wildduck/lib/message-handler');
 const db = require('./lib/db');
 const fs = require('fs');
-const crypto = require('crypto');
+const EtherealId = require('ethereal-id');
+
+const etherealId = new EtherealId({
+    secret: config.smtp.msgidSecret,
+    hash: config.smtp.msgidHash
+});
 
 let messageHandler;
 let userHandler;
@@ -153,19 +158,8 @@ const serverOptions = {
                     return callback(err);
                 }
 
-                let mboxId = Buffer.from(info.mailbox.toString(), 'hex');
-                let msgId = Buffer.from(info.id.toString(), 'hex');
-                let uid = Buffer.alloc(5);
-                uid.writeUInt32BE(info.uid, 1);
-                let idBuf = Buffer.concat([mboxId, uid, msgId]);
-
-                let hmac = crypto.createHmac('md5', config.smtp.msgidSecret);
-                hmac.update(idBuf);
-                let signature = hmac.digest();
-
-                let buf = Buffer.concat([idBuf, signature]);
-
-                return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + buf.toString('base64').replace(/\+/g, '_').replace(/\//g, '-') + ']');
+                let msgid = etherealId.get(info.mailbox.toString(), info.id.toString(), info.uid);
+                return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + msgid + ']');
             });
         });
     }
