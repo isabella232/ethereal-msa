@@ -119,12 +119,15 @@ const serverOptions = {
             });
             let maildata = messageHandler.indexer.getMaildata(prepared.id, prepared.mimeTree);
 
-            // default flags are empty
-            let flags = [];
+            // default flags
+            let flags = ['$msa$delivery'];
 
             // default mailbox target is Sent Mail
             let mailboxQueryKey = 'specialUse';
             let mailboxQueryValue = '\\Sent';
+
+            mailboxQueryKey = 'path';
+            mailboxQueryValue = 'INBOX';
 
             let messageOptions = {
                 user: session.user,
