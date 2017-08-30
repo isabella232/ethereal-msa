@@ -10,6 +10,7 @@ const UserHandler = require('wildduck/lib/user-handler');
 const MessageHandler = require('wildduck/lib/message-handler');
 const db = require('./lib/db');
 const fs = require('fs');
+const net = require('net');
 const EtherealId = require('ethereal-id');
 
 const etherealId = new EtherealId({
@@ -44,6 +45,12 @@ const serverOptions = {
 
     disabledCommands: [],
 
+    onConnect(session, callback) {
+        let type = net.isIPv6(session.remoteAddress) ? 'ipv6' : 'ipv4';
+        db.redis.incr('msa:count:connect:' + type, () => false);
+        callback();
+    },
+
     onAuth(auth, session, callback) {
         userHandler.authenticate(
             auth.username,
@@ -61,8 +68,11 @@ const serverOptions = {
                     err = new Error('Authentication failed');
                     err.responseCode = 535;
                     err.name = 'SMTPResponse'; // do not throw
+                    db.redis.incr('msa:count:authfail', () => false);
                     return callback(err);
                 }
+
+                db.redis.incr('msa:count:authsuccess', () => false);
 
                 callback(null, { user: result.user });
             }
@@ -96,6 +106,7 @@ const serverOptions = {
 
         stream.once('error', err => {
             log.error('SMTP', err);
+            db.redis.incr('msa:count:streamerr', () => false);
             callback(new Error('Error reading from stream'));
         });
 
@@ -158,8 +169,11 @@ const serverOptions = {
 
             messageHandler.add(messageOptions, (err, inserted, info) => {
                 if (err) {
+                    db.redis.incr('msa:count:storeerr', () => false);
                     return callback(err);
                 }
+
+                db.redis.incr('msa:count:accept', () => false);
 
                 let msgid = etherealId.get(info.mailbox.toString(), info.id.toString(), info.uid);
                 return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + msgid + ']');
