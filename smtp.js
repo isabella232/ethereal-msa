@@ -173,7 +173,11 @@ const serverOptions = {
                     return callback(err);
                 }
 
-                db.redis.incr('msa:count:accept', () => false);
+                db.redis
+                    .multi()
+                    .incr('msa:count:accept')
+                    .hincrby('msa:count:accept:daily', new Date().toISOString().substr(0, 10), 1)
+                    .exec(() => false);
 
                 let msgid = etherealId.get(info.mailbox.toString(), info.id.toString(), info.uid);
                 return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + msgid + ']');
