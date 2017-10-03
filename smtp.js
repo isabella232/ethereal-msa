@@ -6,8 +6,6 @@ const config = require('wild-config');
 const log = require('npmlog');
 const SMTPServer = require('smtp-server').SMTPServer;
 const tools = require('wildduck/lib/tools');
-const UserHandler = require('wildduck/lib/user-handler');
-const MessageHandler = require('wildduck/lib/message-handler');
 const db = require('./lib/db');
 const fs = require('fs');
 const net = require('net');
@@ -17,9 +15,6 @@ const etherealId = new EtherealId({
     secret: config.smtp.msgidSecret,
     hash: config.smtp.msgidHash
 });
-
-let messageHandler;
-let userHandler;
 
 const serverOptions = {
     // log to console
@@ -52,7 +47,7 @@ const serverOptions = {
     },
 
     onAuth(auth, session, callback) {
-        userHandler.authenticate(
+        db.userHandler.authenticate(
             auth.username,
             auth.password,
             'smtp',
@@ -125,10 +120,10 @@ const serverOptions = {
 
             let raw = Buffer.concat(chunks, chunklen);
 
-            let prepared = messageHandler.prepareMessage({
+            let prepared = db.messageHandler.prepareMessage({
                 raw
             });
-            let maildata = messageHandler.indexer.getMaildata(prepared.id, prepared.mimeTree);
+            let maildata = db.messageHandler.indexer.getMaildata(prepared.id, prepared.mimeTree);
 
             // default flags
             let flags = ['$msa$delivery'];
@@ -167,7 +162,7 @@ const serverOptions = {
                 skipExisting: true
             };
 
-            messageHandler.add(messageOptions, (err, inserted, info) => {
+            db.messageHandler.add(messageOptions, (err, inserted, info) => {
                 if (err) {
                     db.redis.incr('msa:count:storeerr', () => false);
                     return callback(err);
@@ -197,22 +192,6 @@ if (config.tls.key) {
 const server = new SMTPServer(serverOptions);
 
 module.exports = done => {
-    messageHandler = new MessageHandler({
-        database: db.database,
-        users: db.users,
-        redis: db.redis,
-        gridfs: db.gridfs,
-        attachments: config.attachments
-    });
-
-    userHandler = new UserHandler({
-        database: db.database,
-        users: db.users,
-        redis: db.redis,
-        gridfs: db.gridfs,
-        authlogExpireDays: config.log.authlogExpireDays
-    });
-
     let started = false;
 
     server.on('error', err => {
