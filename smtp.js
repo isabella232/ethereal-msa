@@ -181,15 +181,26 @@ const serverOptions = {
     }
 };
 
-if (config.tls.key) {
-    serverOptions.key = fs.readFileSync(config.tls.key);
-    let ca = [].concat(config.tls.ca || []).map(path => fs.readFileSync(path));
-    if (ca.length) {
-        serverOptions.ca = ca;
+let updateTLSOptions = serverOptions => {
+    if (config.tls.key) {
+        serverOptions.key = fs.readFileSync(config.tls.key);
+        let ca = [].concat(config.tls.ca || []).map(path => fs.readFileSync(path));
+        if (ca.length) {
+            serverOptions.ca = ca;
+        }
+        serverOptions.cert = fs.readFileSync(config.tls.cert);
     }
-    serverOptions.cert = fs.readFileSync(config.tls.cert);
-}
+};
+
+updateTLSOptions(serverOptions);
+
 const server = new SMTPServer(serverOptions);
+
+config.on('reload', () => {
+    let certOptions = {};
+    updateTLSOptions(certOptions);
+    server.updateSecureContext(certOptions);
+});
 
 module.exports = done => {
     let started = false;
