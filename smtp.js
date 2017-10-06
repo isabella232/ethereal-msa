@@ -33,7 +33,7 @@ const serverOptions = {
         }
     },
 
-    name: false,
+    name: config.name,
 
     // not required but nice-to-have
     banner: config.smtp.banner,
