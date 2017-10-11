@@ -38,6 +38,8 @@ const serverOptions = {
     // not required but nice-to-have
     banner: config.smtp.banner,
 
+    useProxy: config.smtp.proxy,
+
     disabledCommands: [],
 
     onConnect(session, callback) {

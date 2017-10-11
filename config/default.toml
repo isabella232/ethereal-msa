@@ -13,6 +13,7 @@ banner="Welcome to Ethereal MSA"
 msgidSecret="super secret"
 msgidHash="md5"
 name=false
+proxy=false
 
 [tls]
 #key="/path/to/server/key.pem"
