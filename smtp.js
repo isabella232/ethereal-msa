@@ -182,6 +182,12 @@ const serverOptions = {
 };
 
 let updateTLSOptions = serverOptions => {
+    Object.keys(config.tls || {}).forEach(key => {
+        if (!['key', 'cert', 'ca'].includes(key)) {
+            serverOptions[key] = config.tls[key];
+        }
+    });
+
     if (config.tls.key) {
         serverOptions.key = fs.readFileSync(config.tls.key);
         let ca = [].concat(config.tls.ca || []).map(path => fs.readFileSync(path));
@@ -189,6 +195,10 @@ let updateTLSOptions = serverOptions => {
             serverOptions.ca = ca;
         }
         serverOptions.cert = fs.readFileSync(config.tls.cert);
+
+        if (config.tls.dhparam && typeof config.tls.dhparam === 'string' && config.tls.dhparam.indexOf('\n') < 0) {
+            serverOptions.dhparam = fs.readFileSync(config.tls.dhparam);
+        }
     }
 };
 
