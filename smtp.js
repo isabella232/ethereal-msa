@@ -61,7 +61,8 @@ const serverOptions = {
                 if (err) {
                     return callback(err);
                 }
-                if (!result || (result.scope === 'master' && result.require2fa)) {
+                //if (!result || (result.scope === 'master' && result.require2fa)) {
+                if (!result) {
                     err = new Error('Authentication failed');
                     err.responseCode = 535;
                     err.name = 'SMTPResponse'; // do not throw
