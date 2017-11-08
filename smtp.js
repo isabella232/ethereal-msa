@@ -126,7 +126,7 @@ const serverOptions = {
             let prepared = db.messageHandler.prepareMessage({
                 raw
             });
-            let maildata = db.messageHandler.indexer.getMaildata(prepared.id, prepared.mimeTree);
+            let maildata = db.messageHandler.indexer.getMaildata(prepared.mimeTree);
 
             // default flags
             let flags = ['$msa$delivery'];
