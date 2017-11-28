@@ -123,64 +123,72 @@ const serverOptions = {
 
             let raw = Buffer.concat(chunks, chunklen);
 
-            let prepared = db.messageHandler.prepareMessage({
-                raw
-            });
-            console.log(require('util').inspect(prepared.mimeTree, false, 22));
-            let maildata = db.messageHandler.indexer.getMaildata(prepared.mimeTree);
-
-            // default flags
-            let flags = ['$msa$delivery'];
-
-            // default mailbox target is Sent Mail
-            let mailboxQueryKey = 'specialUse';
-            let mailboxQueryValue = '\\Sent';
-
-            mailboxQueryKey = 'path';
-            mailboxQueryValue = 'INBOX';
-
-            let messageOptions = {
-                user: session.user,
-                [mailboxQueryKey]: mailboxQueryValue,
-
-                prepared,
-                maildata,
-
-                meta: {
-                    source: 'SMTP',
-                    from: sender,
-                    to: recipients,
-                    origin: session.remoteAddress,
-                    originhost: session.clientHostname,
-                    transhost: session.hostNameAppearsAs,
-                    transtype: session.transmissionType,
-                    time: Date.now()
+            db.messageHandler.prepareMessage(
+                {
+                    raw
                 },
+                (err, prepared) => {
+                    if (err) {
+                        log.error('SMTP', err);
+                        db.redis.incr('msa:count:parseerr', () => false);
+                        return callback(new Error('Error parsing message'));
+                    }
+                    let maildata = db.messageHandler.indexer.getMaildata(prepared.mimeTree);
 
-                filters: [],
+                    // default flags
+                    let flags = ['$msa$delivery'];
 
-                date: false,
-                flags,
+                    // default mailbox target is Sent Mail
+                    let mailboxQueryKey = 'specialUse';
+                    let mailboxQueryValue = '\\Sent';
 
-                // if similar message exists, then skip
-                skipExisting: true
-            };
+                    mailboxQueryKey = 'path';
+                    mailboxQueryValue = 'INBOX';
 
-            db.messageHandler.add(messageOptions, (err, inserted, info) => {
-                if (err) {
-                    db.redis.incr('msa:count:storeerr', () => false);
-                    return callback(err);
+                    let messageOptions = {
+                        user: session.user,
+                        [mailboxQueryKey]: mailboxQueryValue,
+
+                        prepared,
+                        maildata,
+
+                        meta: {
+                            source: 'SMTP',
+                            from: sender,
+                            to: recipients,
+                            origin: session.remoteAddress,
+                            originhost: session.clientHostname,
+                            transhost: session.hostNameAppearsAs,
+                            transtype: session.transmissionType,
+                            time: Date.now()
+                        },
+
+                        filters: [],
+
+                        date: false,
+                        flags,
+
+                        // if similar message exists, then skip
+                        skipExisting: true
+                    };
+
+                    db.messageHandler.add(messageOptions, (err, inserted, info) => {
+                        if (err) {
+                            db.redis.incr('msa:count:storeerr', () => false);
+                            return callback(err);
+                        }
+
+                        db.redis
+                            .multi()
+                            .incr('msa:count:accept')
+                            .hincrby('msa:count:accept:daily', new Date().toISOString().substr(0, 10), 1)
+                            .exec(() => false);
+
+                        let msgid = etherealId.get(info.mailbox.toString(), info.id.toString(), info.uid);
+                        return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + msgid + ']');
+                    });
                 }
-
-                db.redis
-                    .multi()
-                    .incr('msa:count:accept')
-                    .hincrby('msa:count:accept:daily', new Date().toISOString().substr(0, 10), 1)
-                    .exec(() => false);
-
-                let msgid = etherealId.get(info.mailbox.toString(), info.id.toString(), info.uid);
-                return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + msgid + ']');
-            });
+            );
         });
     }
 };
