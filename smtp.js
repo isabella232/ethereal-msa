@@ -126,6 +126,7 @@ const serverOptions = {
             let prepared = db.messageHandler.prepareMessage({
                 raw
             });
+            console.log(require('util').inspect(prepared.mimeTree, false, 22));
             let maildata = db.messageHandler.indexer.getMaildata(prepared.mimeTree);
 
             // default flags
