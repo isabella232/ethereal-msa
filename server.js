@@ -9,10 +9,10 @@ const packageData = require('./package.json');
 const log = require('npmlog');
 
 log.level = config.log.level;
-require('./logger');
 
 const printLogo = () => {
-    let versionString = ' ' + packageData.name + '@' + packageData.version + ' ';
+    let versionString =
+        ' ' + packageData.name + '@' + packageData.version + ' ';
 
     log.info('App', '');
     log.info('App', versionString);

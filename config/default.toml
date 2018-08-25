@@ -22,9 +22,6 @@ proxy=false
 
 [log]
 level="silly"
-# log to syslog if true
-# not needed if you run the app as systemd service
-syslog=false
 authlogExpireDays=30
 
 [dbs]

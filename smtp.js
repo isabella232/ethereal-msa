@@ -109,8 +109,14 @@ const serverOptions = {
         });
 
         stream.once('end', () => {
-            let sender = tools.normalizeAddress((session.envelope.mailFrom && session.envelope.mailFrom.address) || '');
-            let recipients = session.envelope.rcptTo.map(rcpt => tools.normalizeAddress(rcpt.address));
+            let sender = tools.normalizeAddress(
+                (session.envelope.mailFrom &&
+                    session.envelope.mailFrom.address) ||
+                    ''
+            );
+            let recipients = session.envelope.rcptTo.map(rcpt =>
+                tools.normalizeAddress(rcpt.address)
+            );
 
             // create Delivered-To and Received headers
             let header = Buffer.from(
@@ -133,7 +139,9 @@ const serverOptions = {
                         db.redis.incr('msa:count:parseerr', () => false);
                         return callback(new Error('Error parsing message'));
                     }
-                    let maildata = db.messageHandler.indexer.getMaildata(prepared.mimeTree);
+                    let maildata = db.messageHandler.indexer.getMaildata(
+                        prepared.mimeTree
+                    );
 
                     // default flags
                     let flags = ['$msa$delivery'];
@@ -172,21 +180,42 @@ const serverOptions = {
                         skipExisting: true
                     };
 
-                    db.messageHandler.add(messageOptions, (err, inserted, info) => {
-                        if (err) {
-                            db.redis.incr('msa:count:storeerr', () => false);
-                            return callback(err);
+                    db.messageHandler.add(
+                        messageOptions,
+                        (err, inserted, info) => {
+                            if (err) {
+                                db.redis.incr(
+                                    'msa:count:storeerr',
+                                    () => false
+                                );
+                                return callback(err);
+                            }
+
+                            db.redis
+                                .multi()
+                                .incr('msa:count:accept')
+                                .hincrby(
+                                    'msa:count:accept:daily',
+                                    new Date().toISOString().substr(0, 10),
+                                    1
+                                )
+                                .exec(() => false);
+
+                            let msgid = etherealId.get(
+                                info.mailbox.toString(),
+                                info.id.toString(),
+                                info.uid
+                            );
+                            return callback(
+                                null,
+                                'Accepted [STATUS=' +
+                                    info.status +
+                                    ' MSGID=' +
+                                    msgid +
+                                    ']'
+                            );
                         }
-
-                        db.redis
-                            .multi()
-                            .incr('msa:count:accept')
-                            .hincrby('msa:count:accept:daily', new Date().toISOString().substr(0, 10), 1)
-                            .exec(() => false);
-
-                        let msgid = etherealId.get(info.mailbox.toString(), info.id.toString(), info.uid);
-                        return callback(null, 'Accepted [STATUS=' + info.status + ' MSGID=' + msgid + ']');
-                    });
+                    );
                 }
             );
         });
@@ -202,13 +231,19 @@ let updateTLSOptions = serverOptions => {
 
     if (config.tls.key) {
         serverOptions.key = fs.readFileSync(config.tls.key);
-        let ca = [].concat(config.tls.ca || []).map(path => fs.readFileSync(path));
+        let ca = []
+            .concat(config.tls.ca || [])
+            .map(path => fs.readFileSync(path));
         if (ca.length) {
             serverOptions.ca = ca;
         }
         serverOptions.cert = fs.readFileSync(config.tls.cert);
 
-        if (config.tls.dhparam && typeof config.tls.dhparam === 'string' && config.tls.dhparam.indexOf('\n') < 0) {
+        if (
+            config.tls.dhparam &&
+            typeof config.tls.dhparam === 'string' &&
+            config.tls.dhparam.indexOf('\n') < 0
+        ) {
             serverOptions.dhparam = fs.readFileSync(config.tls.dhparam);
         }
     }
